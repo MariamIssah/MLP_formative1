@@ -5,16 +5,12 @@ from models import YieldModel
 
 app = FastAPI(title="Farm Yields API", version="1.0")
 
-# -----------------------------
 # MongoDB connection settings
-# -----------------------------
 client = AsyncIOMotorClient("mongodb://localhost:27017/")
 db = client["farm_yields_database"]
 collection = db["yields"]
 
-# -----------------------------
 # Create (POST)
-# -----------------------------
 @app.post("/yields/", response_model=YieldModel)
 async def create_yield(yield_data: YieldModel):
     yield_dict = yield_data.model_dump(by_alias=True, exclude={"id"})
@@ -23,10 +19,7 @@ async def create_yield(yield_data: YieldModel):
     created["_id"] = str(created["_id"])
     return YieldModel(**created)
 
-
-# -----------------------------
 # Read all (GET)
-# -----------------------------
 @app.get("/yields/", response_model=list[YieldModel])
 async def get_all_yields():
     docs = await collection.find().to_list(100)
@@ -35,9 +28,7 @@ async def get_all_yields():
     return [YieldModel(**doc) for doc in docs]
 
 
-# -----------------------------
 # Read one (GET by ID)
-# -----------------------------
 @app.get("/yields/{yield_id}", response_model=YieldModel)
 async def get_yield(yield_id: str):
     try:
@@ -51,10 +42,7 @@ async def get_yield(yield_id: str):
     record["_id"] = str(record["_id"])
     return YieldModel(**record)
 
-
-# -----------------------------
 # Update (PUT)
-# -----------------------------
 @app.put("/yields/{yield_id}", response_model=YieldModel)
 async def update_yield(yield_id: str, yield_data: YieldModel):
     update_dict = {
@@ -76,10 +64,7 @@ async def update_yield(yield_id: str, yield_data: YieldModel):
     updated_record["_id"] = str(updated_record["_id"])
     return YieldModel(**updated_record)
 
-
-# -----------------------------
 # Delete (DELETE)
-# -----------------------------
 @app.delete("/yields/{yield_id}")
 async def delete_yield(yield_id: str):
     try:
