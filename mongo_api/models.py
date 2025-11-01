@@ -4,7 +4,7 @@ from bson import ObjectId
 from pydantic_core import core_schema  
 
 
-# ---- Custom ObjectId type for Pydantic v2 ----
+# Custom ObjectId type for Pydantic v2 
 class PyObjectId(str):
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type, handler):
@@ -27,7 +27,7 @@ class PyObjectId(str):
         return json_schema
 
 
-# ---- MongoDB Data Model ----
+# MongoDB Data Model 
 class YieldModel(BaseModel):
     id: Optional[PyObjectId] = Field(default=None, alias="_id")
     country: str

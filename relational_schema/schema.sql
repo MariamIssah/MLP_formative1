@@ -2,7 +2,7 @@
 CREATE DATABASE agri_yield_db;
 USE agri_yield_db;
 
--- 1️⃣ Table: Countries
+-- 1 Table: Countries
 CREATE TABLE countries
 (
     country_id INT
@@ -11,7 +11,7 @@ CREATE TABLE countries
     (100) UNIQUE NOT NULL
 );
 
-    -- 2️⃣ Table: Crops
+    -- 2 Table: Crops
     CREATE TABLE crops
     (
         crop_id INT
@@ -20,7 +20,7 @@ CREATE TABLE countries
         (100) UNIQUE NOT NULL
 );
 
-        -- 3️⃣ Table: Climate and Yield Data
+        -- 3️ Table: Climate and Yield Data
         CREATE TABLE climate_data
         (
             record_id INT
@@ -40,7 +40,7 @@ CREATE TABLE countries
             (crop_id)
 );
 
-            -- 4️⃣ Table: Logs for Triggers
+            -- 4️ Table: Logs for Triggers
             CREATE TABLE log_records
             (
                 log_id INT
@@ -51,7 +51,7 @@ CREATE TABLE countries
     action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 🔹 STORED PROCEDURE: Add a yield record safely
+--  STORED PROCEDURE: Add a yield record safely
 DELIMITER //
                 CREATE PROCEDURE AddYieldRecord(
     IN p_country_id INT,
@@ -77,7 +77,7 @@ DELIMITER //
 END //
 DELIMITER ;
 
--- 🔹 TRIGGER: Log when new data is inserted
+--  TRIGGER: Log when new data is inserted
 DELIMITER //
                 CREATE TRIGGER after_insert_climate
 AFTER
@@ -95,7 +95,7 @@ AFTER
                 //
 DELIMITER ;
 
-                -- ✅ Sample data
+                --  Sample data
                 INSERT INTO countries
                     (country_name)
                 VALUES

@@ -5,6 +5,14 @@ from models import YieldModel
 
 app = FastAPI(title="Farm Yields API", version="1.0")
 
+@app.get("/")
+def home():
+    return {"message": "Welcome to the Agricultural Yield API 🌾"}
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse("favicon.ico")  # optional if you have an icon file
+
 # MongoDB connection settings
 client = AsyncIOMotorClient("mongodb://localhost:27017/")
 db = client["farm_yields_database"]
