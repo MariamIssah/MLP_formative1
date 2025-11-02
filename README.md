@@ -2,11 +2,11 @@
 
 A comprehensive machine learning pipeline project for managing and analyzing climate data, with prediction capabilities. This system provides dual API endpoints (MySQL and MongoDB) for data operations and includes ML-powered yield predictions.
 
-## 📋 Project Overview
+## Project Overview
 
 This project is part of our Machine Learning Pipeline formative assignment, focusing on building a robust system for climate data management and agricultural yield prediction. The system handles data ingestion, storage, retrieval, and manipulation across two databases, serving as a foundation for machine learning applications.
 
-## 🚀 Features
+## Features
 
 - **Dual Database Support**: MySQL and MongoDB for data redundancy
 - **Data Retrieval**: Fetch climate data records with configurable limits
@@ -15,7 +15,7 @@ This project is part of our Machine Learning Pipeline formative assignment, focu
 - **Error Handling**: Comprehensive exception handling and logging
 - **Type Safety**: Full type hints for better code maintainability
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Backend Frameworks**:
   - FastAPI with SQLAlchemy (MySQL API)
@@ -29,7 +29,7 @@ This project is part of our Machine Learning Pipeline formative assignment, focu
 - **Python**: 3.8+
 - **Environment**: Python virtual environment
 
-## 🚀 Running the System
+## Running the System
 
 ### Prerequisites
 
@@ -104,12 +104,12 @@ This will:
 - Generate a yield prediction
 - Save the results locally
 
-### 📝 Expected Outputs
+### Expected Outputs
 
 - `fetch_data.py` will create a `data_comparison.json` file showing differences between MySQL and MongoDB data
 - `predict.py` will create a `prediction_output.json` file with prediction results
 
-### ⚠️ Troubleshooting
+### Troubleshooting
 
 1. If Python is not found, use `py` instead of `python`:
 
