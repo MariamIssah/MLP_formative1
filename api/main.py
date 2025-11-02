@@ -8,6 +8,11 @@ from dotenv import load_dotenv
 from models import ClimateData
 
 
+class PredictionCreate(BaseModel):
+    record_id: int
+    prediction: float
+
+
 # Load environment variables
 load_dotenv()
 
@@ -80,6 +85,37 @@ async def get_crops():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM crops")
         return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+# READ - Get latest climate data entry
+@app.get("/climate-data/latest", response_model=dict)
+async def get_latest_climate_data():
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT 
+                cd.record_id,
+                cd.year,
+                cd.avg_temp,
+                cd.average_rain_fall_mm_per_year,
+                cd.pesticides_tonnes,
+                cd.hg_ha_yield,
+                c.country_name,
+                cr.crop_name
+            FROM climate_data cd
+            JOIN countries c ON cd.country_id = c.country_id
+            JOIN crops cr ON cd.crop_id = cr.crop_id
+            ORDER BY cd.record_id DESC
+            LIMIT 1
+        """
+        cursor.execute(query)
+        result = cursor.fetchone()
+        if not result:
+            raise HTTPException(status_code=404, detail="No climate data records found")
+        return result
     finally:
         cursor.close()
         conn.close()
@@ -224,7 +260,39 @@ async def update_climate_data(record_id: int, data: ClimateData):
         conn.close()
 
 
-#  DELETE - Remove a climate data record
+# Store prediction for a climate data record
+@app.post("/predictions", response_model=dict)
+async def store_prediction(prediction: PredictionCreate):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify the record exists
+        cursor.execute("SELECT record_id FROM climate_data WHERE record_id = %s", (prediction.record_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail=f"Climate data record {prediction.record_id} not found")
+            
+        # Store prediction using stored procedure
+        try:
+            cursor.callproc('AddPrediction', [prediction.record_id, prediction.prediction])
+        except Error:
+            # Fallback to direct insert if stored procedure doesn't exist
+            cursor.execute("""
+                INSERT INTO predictions (record_id, prediction_value)
+                VALUES (%s, %s)
+            """, (prediction.record_id, prediction.prediction))
+        
+        conn.commit()
+        return {"message": "Prediction stored successfully"}
+    except Error as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"MySQL Error: {str(e)}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# DELETE - Remove a climate data record
 @app.delete("/climate-data/{record_id}", response_model=dict)
 async def delete_climate_data(record_id: int):
     conn = get_db_connection()

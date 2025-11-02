@@ -18,12 +18,11 @@ import numpy as np
 from datetime import datetime
 from tensorflow.keras.models import load_model
 
-# =============================================================================
 # CONFIGURATION SECTION
-# =============================================================================
 
-# API endpoint for climate data - points to local FastAPI server
-API_URL = "http://127.0.0.1:8000"
+# API endpoints for climate data
+MYSQL_API_URL = "http://127.0.0.1:8000"    # MySQL FastAPI server
+MONGO_API_URL = "http://127.0.0.1:8001"    # MongoDB FastAPI server
 
 # Path to the pre-trained Keras model - using raw string for Windows path
 MODEL_PATH = r"C:\Users\awini\MLP_formative1\results\models\crop_prediction.keras"
@@ -32,7 +31,7 @@ MODEL_PATH = r"C:\Users\awini\MLP_formative1\results\models\crop_prediction.kera
 PREDICTION_OUTPUT = "prediction_output.json"
 
 # Flag to control whether predictions are sent back to API
-LOG_PREDICTION = True  
+LOG_PREDICTION = True
 
 # Feature ordering must match the model's expected input structure
 # This ensures consistent data preprocessing between training and inference
@@ -40,39 +39,68 @@ FEATURE_ORDER = [
     "year",                        # Temporal feature - year of observation
     "avg_temp",                    # Climate feature - average temperature
     "average_rain_fall_mm_per_year", # Climate feature - annual rainfall
-    "pesticides_tonnes"            # Agricultural input - pesticide usage
+    "pesticides_tonnes",           # Agricultural input - pesticide usage
+    "country_name",                # Geographical feature - country
+    "crop_name"                    # Agricultural feature - crop type
 ]
 
-# =============================================================================
+
 # HELPER FUNCTIONS
-# =============================================================================
+
 
 def fetch_latest_record():
     """
-    Fetches the most recent climate record from the FastAPI server.
+    Fetches the most recent climate record from both MySQL and MongoDB APIs.
+    Prefers MySQL data but falls back to MongoDB if MySQL fails.
     
     Returns:
         dict: JSON response containing climate data record
         
     Raises:
-        requests.exceptions.RequestException: If API request fails
-        ValueError: If response cannot be parsed as JSON
+        requests.exceptions.RequestException: If both API requests fail
+        ValueError: If responses cannot be parsed as JSON
     """
-    # Construct the API endpoint URL
-    url = f"{API_URL}/climate-data/latest"
-    
-    # Make HTTP GET request with timeout to prevent hanging
-    response = requests.get(url, timeout=10)
-    
-    # Raise exception for bad status codes (4xx, 5xx)
-    response.raise_for_status()
-    
-    # Parse and return JSON response
-    return response.json()
+    # First try MySQL API
+    try:
+        url = f"{MYSQL_API_URL}/climate-data/latest"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        print(" ✅ Successfully fetched latest record from MySQL API")
+        return response.json()
+    except requests.RequestException as e:
+        print(f" ❌ Error fetching from MySQL API: {str(e)}")
+        
+        # Fall back to MongoDB API
+        try:
+            url = f"{MONGO_API_URL}/yields"
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Get the most recent record and map fields
+            if data:
+                latest = data[0]
+                mapped_data = {
+                    "record_id": latest.get("_id"),
+                    "year": latest.get("year"),
+                    "avg_temp": latest.get("avg_temp"),
+                    "average_rain_fall_mm_per_year": latest.get("average_rainfall_mm_per_year"),
+                    "pesticides_tonnes": latest.get("pesticides_tonnes"),
+                    "hg_ha_yield": latest.get("yield_hg_per_ha"),
+                    "country_name": latest.get("country"),
+                    "crop_name": latest.get("crop")
+                }
+                print(" ✅ Successfully fetched latest record from MongoDB API")
+                return mapped_data
+            
+        except requests.RequestException as e:
+            print(f" ❌ Error fetching from MongoDB API: {str(e)}")
+            raise Exception("Failed to fetch data from both MySQL and MongoDB APIs")
 
 def preprocess_data(record):
     """
     Converts JSON record into properly formatted NumPy array for model prediction.
+    Handles both numerical and categorical features.
     
     Args:
         record (dict): Climate data record from API
@@ -82,15 +110,39 @@ def preprocess_data(record):
     """
     values = []
     
+    # Country encoding (one-hot or label encoding would be better in production)
+    country_mapping = {
+        "Ghana": 1.0,
+        "Kenya": 2.0,
+        "Nigeria": 3.0
+        # Add other countries as needed
+    }
+    
+    # Crop encoding
+    crop_mapping = {
+        "Maize": 1.0,
+        "Rice": 2.0,
+        "Wheat": 3.0
+        # Add other crops as needed
+    }
+    
     # Iterate through features in predefined order to maintain consistency
     for feature in FEATURE_ORDER:
-        # Extract value from record, default to 0.0 if missing or None
-        val = record.get(feature, 0.0)
-        if val is None:
-            val = 0.0
+        # Handle different feature types
+        if feature == "country_name":
+            country = record.get(feature, "Ghana")  # Default to Ghana if missing
+            val = country_mapping.get(country, 0.0)  # Default to 0.0 if country not in mapping
+        elif feature == "crop_name":
+            crop = record.get(feature, "Maize")  # Default to Maize if missing
+            val = crop_mapping.get(crop, 0.0)  # Default to 0.0 if crop not in mapping
+        else:
+            # Handle numerical features as before
+            val = record.get(feature, 0.0)
+            if val is None:
+                val = 0.0
+            val = float(val)
         
-        # Convert to float to ensure numerical data type
-        values.append(float(val))
+        values.append(val)
     
     # Convert list to NumPy array and reshape for single prediction
     X = np.array(values, dtype=float).reshape(1, -1)
@@ -119,7 +171,7 @@ def load_keras_model():
 
 def log_prediction_to_api(record_id, prediction):
     """
-    Sends prediction result back to FastAPI for storage and monitoring.
+    Sends prediction result back to MySQL API for storage and monitoring.
     
     Args:
         record_id: Unique identifier for the climate record
@@ -128,7 +180,7 @@ def log_prediction_to_api(record_id, prediction):
     Returns:
         dict: API response if successful, None otherwise
     """
-    url = f"{API_URL}/predictions"
+    url = f"{MYSQL_API_URL}/predictions"
     
     # Prepare payload for API request
     payload = {
@@ -141,12 +193,12 @@ def log_prediction_to_api(record_id, prediction):
         res = requests.post(url, json=payload, timeout=10)
         res.raise_for_status()  # Check for HTTP errors
         
-        print(" Prediction logged to API successfully.")
+        print(" ✅ Prediction logged to MySQL API successfully.")
         return res.json()
     
     except Exception as e:
         # Gracefully handle API communication failures
-        print(" Could not log prediction to API:", e)
+        print(f" ❌ Could not log prediction to MySQL API: {e}")
         return None
 
 def save_local_log(record, prediction):
@@ -194,6 +246,9 @@ def main():
     
     # Handle different prediction output formats (2D array vs 1D array)
     prediction_value = float(prediction[0][0]) if prediction.ndim == 2 else float(prediction[0])
+    
+    # Post-process: Ensure non-negative yield predictions
+    prediction_value = max(0.0, prediction_value)  # Crop yields cannot be negative
     print(f" Predicted yield (hg/ha): {prediction_value}")
 
     # Extract record ID for API logging

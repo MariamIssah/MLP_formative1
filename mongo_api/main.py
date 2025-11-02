@@ -6,17 +6,32 @@ from models import YieldModel
 app = FastAPI(title="Farm Yields API", version="1.0")
 
 @app.get("/")
-def home():
-    return {"message": "Welcome to the Agricultural Yield API 🌾"}
-
-@app.get("/favicon.ico", include_in_schema=False)
-def favicon():
-    return FileResponse("favicon.ico")  # optional if you have an icon file
+async def home():
+    try:
+        # Try to ping MongoDB
+        await client.admin.command('ping')
+        db_status = "Connected"
+    except Exception as e:
+        db_status = f"Not connected: {str(e)}"
+    
+    return {
+        "message": "Welcome to the Agricultural Yield API 🌾",
+        "database_status": db_status
+    }
 
 # MongoDB connection settings
-client = AsyncIOMotorClient("mongodb://localhost:27017/")
-db = client["farm_yields_database"]
-collection = db["yields"]
+try:
+    client = AsyncIOMotorClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5000)
+    # Verify the connection
+    db = client["farm_yields_database"]
+    collection = db["yields"]
+    print("Successfully connected to MongoDB")
+except Exception as e:
+    print(f"Failed to connect to MongoDB: {e}")
+    # Don't raise the error, let the API start even if DB is not ready
+    client = AsyncIOMotorClient("mongodb://localhost:27017/")
+    db = client["farm_yields_database"]
+    collection = db["yields"]
 
 # Create (POST)
 @app.post("/yields/", response_model=YieldModel)

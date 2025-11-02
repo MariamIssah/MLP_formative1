@@ -1,0 +1,64 @@
+{
+  "timestamp": "2025-11-02T16:36:09.598688",
+  "mysql_status": "success",
+  "mongodb_status": "success",
+  "discrepancies": [
+    {
+      "field": "avg_temp",
+      "mysql_value": 26.5,
+      "mongodb_value": 24.7
+    },
+    {
+      "field": "average_rain_fall_mm_per_year",
+      "mysql_value": 820.0,
+      "mongodb_value": 800.0
+    },
+    {
+      "field": "pesticides_tonnes",
+      "mysql_value": 18.3,
+      "mongodb_value": 20.5
+    },
+    {
+      "field": "hg_ha_yield",
+      "mysql_value": 4200.6,
+      "mongodb_value": 4500.75
+    },
+    {
+      "field": "country_name",
+      "mysql_value": "Ghana",
+      "mongodb_value": "Kenya"
+    }
+  ]
+}
+{
+  "timestamp": "2025-11-02T17:10:52.021972",
+  "mysql_status": "success",
+  "mongodb_status": "success",
+  "discrepancies": [
+    {
+      "field": "avg_temp",
+      "mysql_value": 26.5,
+      "mongodb_value": 24.7
+    },
+    {
+      "field": "average_rain_fall_mm_per_year",
+      "mysql_value": 820.0,
+      "mongodb_value": 800.0
+    },
+    {
+      "field": "pesticides_tonnes",
+      "mysql_value": 18.3,
+      "mongodb_value": 20.5
+    },
+    {
+      "field": "hg_ha_yield",
+      "mysql_value": 4200.6,
+      "mongodb_value": 4500.75
+    },
+    {
+      "field": "country_name",
+      "mysql_value": "Ghana",
+      "mongodb_value": "Kenya"
+    }
+  ]
+}
