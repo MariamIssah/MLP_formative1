@@ -20,10 +20,17 @@ def fetch_mysql_latest() -> Optional[Dict]:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json()
+<<<<<<< HEAD
         print(" Successfully fetched latest record from MySQL API")
         return data
     except requests.RequestException as e:
         print(f" Error fetching from MySQL API: {str(e)}")
+=======
+        print("Successfully fetched latest record from MySQL API")
+        return data
+    except requests.RequestException as e:
+        print(f"Error fetching from MySQL API: {str(e)}")
+>>>>>>> 420d72319ab25d22b424395c46478e00280e2b28
         return None
 
 def fetch_mongodb_latest() -> Optional[Dict]:
@@ -47,11 +54,19 @@ def fetch_mongodb_latest() -> Optional[Dict]:
                 "country_name": latest.get("country"),
                 "crop_name": latest.get("crop")
             }
+<<<<<<< HEAD
             print(" Successfully fetched latest record from MongoDB API")
             return mapped_data
         return None
     except requests.RequestException as e:
         print(f" Error fetching from MongoDB API: {str(e)}")
+=======
+            print("Successfully fetched latest record from MongoDB API")
+            return mapped_data
+        return None
+    except requests.RequestException as e:
+        print(f"Error fetching from MongoDB API: {str(e)}")
+>>>>>>> 420d72319ab25d22b424395c46478e00280e2b28
         return None
 
 def compare_records(mysql_record: Optional[Dict], mongo_record: Optional[Dict]) -> Dict:
@@ -91,6 +106,7 @@ def save_comparison(comparison: Dict, filename: str = "data_comparison.json"):
         with open(filename, 'a', encoding='utf-8') as f:
             json.dump(comparison, f, indent=2)
             f.write('\n')
+<<<<<<< HEAD
         print(f" Comparison saved to {filename}")
     except Exception as e:
         print(f" Error saving comparison: {str(e)}")
@@ -99,23 +115,50 @@ def main():
  
     print("\n Fetching latest records from both APIs...")
    
+=======
+        print(f"Comparison saved to {filename}")
+    except Exception as e:
+        print(f"Error saving comparison: {str(e)}")
+
+def main():
+    """
+    Main function to orchestrate the data fetching and comparison process.
+    """
+    print("\nFetching latest records from both APIs...")
+    
+    # Fetch from both APIs
+>>>>>>> 420d72319ab25d22b424395c46478e00280e2b28
     mysql_record = fetch_mysql_latest()
     mongo_record = fetch_mongodb_latest()
 
     comparison = compare_records(mysql_record, mongo_record)
+<<<<<<< HEAD
  
     print("\n Comparison Results:")
+=======
+    
+    # Print results
+    print("\nComparison Results:")
+>>>>>>> 420d72319ab25d22b424395c46478e00280e2b28
     print(f"MySQL Status: {comparison['mysql_status']}")
     print(f"MongoDB Status: {comparison['mongodb_status']}")
     
     if comparison.get("discrepancies"):
+<<<<<<< HEAD
         print("\n Discrepancies found:")
+=======
+        print("\nDiscrepancies found:")
+>>>>>>> 420d72319ab25d22b424395c46478e00280e2b28
         for disc in comparison["discrepancies"]:
             print(f"- Field: {disc['field']}")
             print(f"  MySQL: {disc['mysql_value']}")
             print(f"  MongoDB: {disc['mongodb_value']}\n")
     else:
+<<<<<<< HEAD
         print("\n No discrepancies found between databases")
+=======
+        print("\nNo discrepancies found between databases")
+>>>>>>> 420d72319ab25d22b424395c46478e00280e2b28
     
     save_comparison(comparison)
    
@@ -124,7 +167,15 @@ def main():
 if __name__ == "__main__":
     latest_record = main()
     if latest_record:
+<<<<<<< HEAD
         print("\n Latest Record:")
         print(json.dumps(latest_record, indent=2))
     else:
         print("\n Failed to fetch latest record from either database")
+=======
+        print("\nLatest Record:")
+        print(json.dumps(latest_record, indent=2))
+    else:
+
+        print("\nFailed to fetch latest record from either database")
+>>>>>>> 420d72319ab25d22b424395c46478e00280e2b28
