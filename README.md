@@ -17,10 +17,10 @@ This project is part of our Machine Learning Pipeline formative assignment, focu
 
 ## 🛠️ Technology Stack
 
-- **Backend Frameworks**: 
+- **Backend Frameworks**:
   - FastAPI with SQLAlchemy (MySQL API)
   - FastAPI with Motor (MongoDB API)
-- **Databases**: 
+- **Databases**:
   - MySQL
   - MongoDB
 - **Machine Learning**:
@@ -59,18 +59,21 @@ pip install -r requirements.txt
 Open two separate terminal windows and run:
 
 1. MySQL API (Terminal 1):
+
 ```bash
 cd api
 uvicorn main:app --reload --port 8000
 ```
 
 2. MongoDB API (Terminal 2):
+
 ```bash
 cd mongo_api
 uvicorn main:app --reload --port 8001
 ```
 
 The APIs will be available at:
+
 - MySQL API: http://127.0.0.1:8000
 - MongoDB API: http://127.0.0.1:8001
 
@@ -79,18 +82,23 @@ The APIs will be available at:
 There are two ways to use the prediction system:
 
 1. Fetch data only:
+
 ```bash
 cd prediction
 python fetch_data.py
 ```
+
 This will fetch the latest records from both APIs and compare them.
 
 2. Make predictions:
+
 ```bash
 cd prediction
 python predict.py
 ```
+
 This will:
+
 - Fetch the latest climate data
 - Run it through the ML model
 - Generate a yield prediction
@@ -104,12 +112,14 @@ This will:
 ### ⚠️ Troubleshooting
 
 1. If Python is not found, use `py` instead of `python`:
+
    ```bash
    py fetch_data.py
    py predict.py
    ```
 
 2. If APIs are not reachable:
+
    - Verify both API servers are running
    - Check the ports (8000 for MySQL, 8001 for MongoDB)
    - Ensure MongoDB service is running
