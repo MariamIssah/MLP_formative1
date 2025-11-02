@@ -1,30 +1,10 @@
-"""
-Pydantic Data Models for Crop Yield Analysis System
-
-This module defines the data models used for storing and validating crop yield data
-in MongoDB. It includes custom type handling for MongoDB ObjectId and the main
-YieldModel for agricultural data.
-
-"""
-
 from pydantic import BaseModel, Field
 from typing import Optional
 from bson import ObjectId
 from pydantic_core import core_schema  
 
-
-# Custom ObjectId type for Pydantic v2 
-# This class enables proper validation and serialization of MongoDB ObjectIds
-# in Pydantic v2, which doesn't have built-in ObjectId support
 class PyObjectId(str):
-    """
-    Custom Pydantic type for MongoDB ObjectId validation and serialization.
-    
-    This class ensures that:
-    1. ObjectId strings are properly validated
-    2. ObjectIds are serialized as strings in JSON
-    3. OpenAPI documentation correctly represents ObjectId as string type
-    """
+
     
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type, handler):
@@ -53,12 +33,7 @@ class PyObjectId(str):
 
     @classmethod
     def __get_pydantic_json_schema__(cls, core_schema_, handler):
-        """
-        Custom JSON schema generation for OpenAPI documentation.
-        
-        Ensures that ObjectId is represented as a string type in API documentation,
-        making it clear to API consumers what format to expect.
-        """
+    
         json_schema = handler(core_schema_)
         json_schema.update(type="string")
         return json_schema
@@ -66,22 +41,6 @@ class PyObjectId(str):
 
 # MongoDB Data Model 
 class YieldModel(BaseModel):
-    """
-    Main data model representing crop yield and agricultural metrics.
-    
-    This model maps to MongoDB documents and includes validation for all fields.
-    It's used for both API request/response validation and database operations.
-    
-    Fields:
-    - id: MongoDB ObjectId (automatically generated)
-    - country: Country name where data was recorded
-    - crop: Type of crop (e.g., Maize, Wheat, Rice)
-    - year: Year of data recording
-    - yield_hg_per_ha: Crop yield in hectograms per hectare
-    - average_rainfall_mm_per_year: Annual rainfall in millimeters
-    - pesticides_tonnes: Pesticide usage in tonnes
-    - avg_temp: Average temperature in Celsius
-    """
     
     id: Optional[PyObjectId] = Field(default=None, alias="_id")
     country: str

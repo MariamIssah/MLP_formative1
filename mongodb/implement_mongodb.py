@@ -1,22 +1,3 @@
-'''
-This script reads the yield_df.csv file and imports it to MongoDB.
-It connects to a local or dockerized MongoDB instance and uploads the data running 
-on port 27017.
-
-Requirements:
-- pandas
-- pymongo
-
-Usage:
-- python implement_mongodb.py
-
-Features:
-- Data validation and type conversion
-- Comprehensive error handling
-- Progress logging
-- Data verification
-'''
-
 import pandas as pd
 from pymongo import MongoClient
 import logging
@@ -39,15 +20,7 @@ DB_NAME = 'farm_yields_database'
 COLLECTION_NAME = 'yields'
 
 def validate_dataframe(df: pd.DataFrame) -> bool:
-    """
-    Validate the DataFrame structure and required columns.
     
-    Args:
-        df: DataFrame to validate
-        
-    Returns:
-        bool: True if validation passes
-    """
     required_columns = ['Area', 'Item', 'Year', 'hg/ha_yield', 
                        'average_rain_fall_mm_per_year', 'pesticides_tonnes', 'avg_temp']
     
