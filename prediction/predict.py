@@ -1,16 +1,3 @@
-"""
-Crop Yield Prediction Script
-
-This script demonstrates a complete ML pipeline for predicting crop yields:
-1. Fetches latest climate data from a REST API
-2. Preprocesses the data for model consumption
-3. Loads a trained Keras model
-4. Makes predictions
-5. Logs results both locally and to an API
-
-Purpose: To demonstrate ML model deployment and inference patterns
-"""
-
 import os
 import json
 import requests
@@ -20,39 +7,21 @@ from datetime import datetime
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
-# CONFIGURATION SECTION
-
-# API endpoints for climate data
-MYSQL_API_URL = "http://127.0.0.1:8000"    # MySQL FastAPI server
-MONGO_API_URL = "http://127.0.0.1:8001"    # MongoDB FastAPI server
-
-# Path to the pre-trained Keras model - using raw string for Windows path
+MYSQL_API_URL = "http://127.0.0.1:8000"    
+MONGO_API_URL = "http://127.0.0.1:8001"    
 MODEL_PATH = r"C:\Users\awini\MLP_formative1\results\models\crop_prediction.keras"
-
-# Path to training data for recreating scalers/encoders
 DATA_CSV = r"C:\Users\awini\MLP_formative1\yield_df.csv"
-
-# Local file for storing prediction results
 PREDICTION_OUTPUT = "prediction_output.json"
-
-# Flag to control whether predictions are sent back to API
 LOG_PREDICTION = True
-
-# Feature ordering must match the model's expected input structure
-# This ensures consistent data preprocessing between training and inference
 FEATURE_ORDER = [
-    "year",                        # Temporal feature - year of observation
-    "avg_temp",                    # Climate feature - average temperature
-    "average_rain_fall_mm_per_year", # Climate feature - annual rainfall
-    "pesticides_tonnes",           # Agricultural input - pesticide usage
-    "country_name",                # Geographical feature - country
-    "crop_name"                    # Agricultural feature - crop type
+    "year",                      
+    "avg_temp",                    
+    "average_rain_fall_mm_per_year",
+    "pesticides_tonnes",           
+    "country_name",               
+    "crop_name"                    
 ]
 
-
-# HELPER FUNCTIONS
-
-# Global variables for scalers and encoders (will be initialized once)
 _scaler = None
 _label_encoders = None
 
@@ -71,10 +40,9 @@ def initialize_preprocessors():
         return _scaler, _label_encoders
     
     try:
-        print("📊 Loading training data to initialize preprocessors...")
+        print("Loading training data to initialize preprocessors...")
         df = pd.read_csv(DATA_CSV, index_col=0)
         
-        # Map column names to match our feature names
         df = df.rename(columns={
             "Year": "year",
             "Item": "crop_name",
@@ -82,34 +50,31 @@ def initialize_preprocessors():
             "hg/ha_yield": "hg_ha_yield"
         })
         
-        # Define numeric and categorical columns
         NUM_COLS = ["year", "avg_temp", "average_rain_fall_mm_per_year", "pesticides_tonnes"]
         CAT_COLS = ["country_name", "crop_name"]
         
-        # Fit StandardScaler on numeric features
         _scaler = StandardScaler()
         X_num = df[NUM_COLS].astype(float).fillna(0.0)
         _scaler.fit(X_num)
-        print(f"✅ StandardScaler fitted on {len(NUM_COLS)} numeric features")
+        print(f"StandardScaler fitted on {len(NUM_COLS)} numeric features")
         
-        # Fit LabelEncoders on categorical features
         _label_encoders = {}
         for col in CAT_COLS:
             le = LabelEncoder()
             values = df[col].astype(str).fillna('')
             le.fit(values)
             _label_encoders[col] = le
-            print(f"✅ LabelEncoder fitted for {col} ({len(le.classes_)} unique values)")
+            print(f"LabelEncoder fitted for {col} ({len(le.classes_)} unique values)")
         
         return _scaler, _label_encoders
         
     except FileNotFoundError:
-        print(f"⚠️  Warning: Training data not found at {DATA_CSV}")
-        print("   Falling back to simple preprocessing (may cause inaccurate predictions)")
+        print(f"Warning: Training data not found at {DATA_CSV}")
+        print("Falling back to simple preprocessing (may cause inaccurate predictions)")
         return None, None
     except Exception as e:
-        print(f"⚠️  Warning: Error initializing preprocessors: {str(e)}")
-        print("   Falling back to simple preprocessing (may cause inaccurate predictions)")
+        print(f"Warning: Error initializing preprocessors: {str(e)}")
+        print("Falling back to simple preprocessing (may cause inaccurate predictions)")
         return None, None
 
 
@@ -125,35 +90,30 @@ def fetch_latest_record():
         requests.exceptions.RequestException: If both API requests fail
         ValueError: If responses cannot be parsed as JSON
     """
-    # First try MySQL API
     try:
         url = f"{MYSQL_API_URL}/climate-data/latest"
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json()
         
-        # Validate that we received data
         if not data:
             raise ValueError("MySQL API returned empty response")
             
-        print(" ✅ Successfully fetched latest record from MySQL API")
+        print("Successfully fetched latest record from MySQL API")
         return data
     except requests.RequestException as e:
-        print(f" ⚠️  Warning: Error fetching from MySQL API: {str(e)}")
-        print(" 🔄 Attempting fallback to MongoDB API...")
+        print(f"Warning: Error fetching from MySQL API: {str(e)}")
+        print("Attempting fallback to MongoDB API...")
         
-        # Fall back to MongoDB API
         try:
             url = f"{MONGO_API_URL}/yields"
             response = requests.get(url, timeout=10)
             response.raise_for_status()
             data = response.json()
             
-            # Validate that we received data
             if not data or len(data) == 0:
                 raise ValueError("MongoDB API returned empty response")
             
-            # Get the most recent record and map fields
             latest = data[0]
             mapped_data = {
                 "record_id": latest.get("_id"),
@@ -165,14 +125,14 @@ def fetch_latest_record():
                 "country_name": latest.get("country"),
                 "crop_name": latest.get("crop")
             }
-            print(" ✅ Successfully fetched latest record from MongoDB API")
+            print("Successfully fetched latest record from MongoDB API")
             return mapped_data
             
         except requests.RequestException as e:
-            print(f" ❌ Error fetching from MongoDB API: {str(e)}")
+            print(f"Error fetching from MongoDB API: {str(e)}")
             raise Exception("Failed to fetch data from both MySQL and MongoDB APIs")
         except ValueError as e:
-            print(f" ❌ {str(e)}")
+            print(f" {str(e)}")
             raise
 
 def validate_record(record):
@@ -214,8 +174,8 @@ def preprocess_data(record, scaler=None, label_encoders=None):
     # Validate record first
     is_valid, missing_fields = validate_record(record)
     if not is_valid:
-        print(f" ⚠️  Warning: Missing required fields: {missing_fields}")
-        print(" 🔄 Attempting to handle missing data with defaults...")
+        print(f"Warning: Missing required fields: {missing_fields}")
+        print("Attempting to handle missing data with defaults...")
     
     warnings = []
     
@@ -303,7 +263,7 @@ def preprocess_data(record, scaler=None, label_encoders=None):
     
     # Print warnings if any
     if warnings:
-        print(" ⚠️  Data Quality Warnings:")
+        print("Data Quality Warnings:")
         for warning in warnings:
             print(f"    - {warning}")
     
@@ -350,20 +310,20 @@ def load_keras_model():
             f"Please ensure the model file 'crop_prediction.keras' exists in the results/models/ directory."
         )
     
-    print(f"📁 Model path: {MODEL_PATH}")
+    print(f"Model path: {MODEL_PATH}")
     
     # Validate file extension
     if not MODEL_PATH.endswith('.keras') and not MODEL_PATH.endswith('.h5'):
-        print(f"⚠️  Warning: Model file doesn't have standard extension (.keras or .h5)")
+        print(f"Warning: Model file doesn't have standard extension (.keras or .h5)")
     
     try:
         # Load and return the Keras model
         model = load_model(MODEL_PATH)
-        print(f"✅ Model loaded successfully (crop_prediction.keras)")
+        print(f" Model loaded successfully (crop_prediction.keras)")
         
         # Display model summary information
         input_shape = model.input_shape if hasattr(model, 'input_shape') else "Unknown"
-        print(f"📊 Model input shape: {input_shape}")
+        print(f"Model input shape: {input_shape}")
         
         return model
     except OSError as e:
@@ -395,12 +355,12 @@ def log_prediction_to_api(record_id, prediction):
         res = requests.post(url, json=payload, timeout=10)
         res.raise_for_status()  # Check for HTTP errors
         
-        print(" ✅ Prediction logged to MySQL API successfully.")
+        print("Prediction logged to MySQL API successfully.")
         return res.json()
     
     except Exception as e:
         # Gracefully handle API communication failures
-        print(f" ❌ Could not log prediction to MySQL API: {e}")
+        print(f"Could not log prediction to MySQL API: {e}")
         return None
 
 def save_local_log(metadata, prediction):
@@ -436,7 +396,7 @@ def save_local_log(metadata, prediction):
             json_str = json.dumps(data, ensure_ascii=False)
             f.write(json_str + "\n")
         
-        print(f"💾 Prediction saved to {PREDICTION_OUTPUT}")
+        print(f"Prediction saved to {PREDICTION_OUTPUT}")
     except IOError as e:
         raise IOError(f"Error writing to file {PREDICTION_OUTPUT}: {str(e)}")
     except (TypeError, ValueError) as e:
@@ -463,29 +423,29 @@ def main():
             record = fetch_latest_record()
             if not record:
                 raise ValueError("No data record received from API")
-            print("✅ Successfully fetched record")
-            print("📋 Latest Record:")
+            print("Successfully fetched record")
+            print("Latest Record:")
             print(json.dumps(record, indent=2))
         except Exception as e:
-            print(f"❌ Error fetching data: {str(e)}")
+            print(f"Error fetching data: {str(e)}")
             raise
 
         # Step 2: Initialize preprocessors
-        print("\n🔧 Step 2: Initializing preprocessors...")
+        print("\n Step 2: Initializing preprocessors...")
         scaler, label_encoders = initialize_preprocessors()
         if scaler is None or label_encoders is None:
-            print("⚠️  Warning: Using fallback preprocessing (predictions may be inaccurate)")
+            print("Warning: Using fallback preprocessing (predictions may be inaccurate)")
         else:
-            print("✅ Preprocessors initialized successfully")
+            print("Preprocessors initialized successfully")
         
         # Step 3: Prepare data for model prediction
-        print("\n🔧 Step 3: Preparing data for model prediction...")
+        print("\n Step 3: Preparing data for model prediction...")
         try:
             X, metadata = preprocess_data(record, scaler=scaler, label_encoders=label_encoders)
-            print("✅ Data preprocessing completed")
-            print(f"📊 Feature Vector Shape: {X.shape}")
-            print(f"📊 Feature Vector: {X.tolist()}")
-            print(f"\n📋 Prediction Details:")
+            print("Data preprocessing completed")
+            print(f"Feature Vector Shape: {X.shape}")
+            print(f"Feature Vector: {X.tolist()}")
+            print(f"\nPrediction Details:")
             print(f"   Country: {metadata.get('country_name', 'Unknown')}")
             print(f"   Crop: {metadata.get('crop_name', 'Unknown')}")
             print(f"   Year: {metadata.get('year', 'Unknown')}")
@@ -493,26 +453,26 @@ def main():
             print(f"   Average Rainfall: {metadata.get('average_rain_fall_mm_per_year', 'Unknown')} mm/year")
             print(f"   Pesticides: {metadata.get('pesticides_tonnes', 'Unknown')} tonnes")
         except ValueError as e:
-            print(f"❌ Error preprocessing data: {str(e)}")
+            print(f"Error preprocessing data: {str(e)}")
             raise
         except Exception as e:
-            print(f"❌ Unexpected error during preprocessing: {str(e)}")
+            print(f"Unexpected error during preprocessing: {str(e)}")
             raise
 
         # Step 4: Load Keras model
-        print("\n🤖 Step 4: Loading Keras model...")
+        print("\nStep 4: Loading Keras model...")
         try:
             model = load_keras_model()
-            print("✅ Model loaded successfully")
+            print("Model loaded successfully")
         except FileNotFoundError as e:
-            print(f"❌ Model file not found: {str(e)}")
+            print(f"Model file not found: {str(e)}")
             raise
         except Exception as e:
-            print(f"❌ Error loading model: {str(e)}")
+            print(f"Error loading model: {str(e)}")
             raise
 
         # Step 5: Make prediction
-        print("\n🔮 Step 5: Making prediction...")
+        print("\nStep 5: Making prediction...")
         try:
             prediction = model.predict(X, verbose=0)
             
@@ -526,22 +486,22 @@ def main():
             raw_prediction = prediction_value
             prediction_value = max(0.0, prediction_value)  # Crop yields cannot be negative
             
-            print(f"✅ Prediction completed")
-            print(f"\n📊 Prediction Results:")
+            print(f"Prediction completed")
+            print(f"\nPrediction Results:")
             print(f"   Raw prediction: {raw_prediction:.4f} hg/ha")
             if raw_prediction < 0:
-                print(f"   ⚠️  Negative prediction clamped to 0")
-            print(f"   Final predicted yield: {prediction_value:.4f} hg/ha")
-            print(f"\n🌾 Yield Prediction Summary:")
-            print(f"   Country: {metadata.get('country_name', 'Unknown')}")
-            print(f"   Crop Type: {metadata.get('crop_name', 'Unknown')}")
-            print(f"   Predicted Yield: {prediction_value:.2f} hg/ha ({prediction_value/100:.2f} tonnes/ha)")
+                print(f"Negative prediction clamped to 0")
+            print(f"Final predicted yield: {prediction_value:.4f} hg/ha")
+            print(f"\nYield Prediction Summary:")
+            print(f"Country: {metadata.get('country_name', 'Unknown')}")
+            print(f"Crop Type: {metadata.get('crop_name', 'Unknown')}")
+            print(f"Predicted Yield: {prediction_value:.2f} hg/ha ({prediction_value/100:.2f} tonnes/ha)")
         except Exception as e:
-            print(f"❌ Error making prediction: {str(e)}")
+            print(f"Error making prediction: {str(e)}")
             raise
 
         # Step 6: Log results to database
-        print("\n💾 Step 6: Logging results...")
+        print("\nStep 6: Logging results...")
         record_id = metadata.get("record_id", None)
         
         # Log to API if enabled
@@ -549,31 +509,31 @@ def main():
             try:
                 api_result = log_prediction_to_api(record_id, prediction_value)
                 if api_result:
-                    print("✅ Results logged to database successfully")
+                    print("Results logged to database successfully")
             except Exception as e:
-                print(f"⚠️  Warning: Could not log to API: {str(e)}")
-                print("   Continuing with local log only...")
+                print(f"Warning: Could not log to API: {str(e)}")
+                print("Continuing with local log only...")
         elif not record_id:
-            print("⚠️  Warning: No record_id found, skipping API logging")
+            print("Warning: No record_id found, skipping API logging")
 
         # Always save locally for backup
         try:
             save_local_log(metadata, prediction_value)
-            print("✅ Results saved to local file")
+            print("Results saved to local file")
         except Exception as e:
-            print(f"❌ Error saving local log: {str(e)}")
+            print(f"Error saving local log: {str(e)}")
             raise
 
         print("\n" + "=" * 60)
-        print("✅ TASK 3 COMPLETED SUCCESSFULLY!")
+        print("TASK 3 COMPLETED SUCCESSFULLY!")
         print("=" * 60)
         
     except KeyboardInterrupt:
-        print("\n\n⚠️  Process interrupted by user")
+        print("\n\n  Process interrupted by user")
         raise
     except Exception as e:
         print("\n" + "=" * 60)
-        print(f"❌ TASK 3 FAILED: {str(e)}")
+        print(f" TASK 3 FAILED: {str(e)}")
         print("=" * 60)
         raise
 
